@@ -235,14 +235,31 @@ def createPolymerSMILES(i,n,r,t,*, verbosity = False, test = False):
         return full_smiles, m_per_n
    
 def optPol(smiles):
+    tmp_mol = "tmp.mol"
     #make Mol object:
     pol = Chem.MolFromSmiles(smiles)
     #check mol
     Chem.SanitizeMol(pol)
     #opt steps
     pol_h = Chem.AddHs(pol)
-    AllChem.EmbedMolecule(pol_h, useRandomCoords=True)
-    AllChem.MMFFOptimizeMolecule(pol_h, maxIters=5000)
+    ids = AllChem.EmbedMultipleConfs(pol_h, numConfs=10, #randomSeed=randomSeed, 
+        useExpTorsionAnglePrefs=True, numThreads=0)
+    best = []
+    for id in ids:
+        prop = AllChem.MMFFGetMoleculeProperties(pol_h)
+        ff = AllChem.MMFFGetMoleculeForceField(pol_h, prop, confId=id)
+        ff.Minimize()
+        en = float(ff.CalcEnergy())
+        econf = (en, id)
+        best.append(econf)
+    best.sort()
+    best_id = int(best[0][1])
+    Chem.MolToMolFile(pol_h,tmp_mol,confId=int(best_id))
+    pol_h = Chem.MolFromMolFile(tmp_mol)
+    os.remove(tmp_mol)
+
+    # AllChem.EmbedMolecule(pol_h, useRandomCoords=True)
+    # AllChem.MMFFOptimizeMolecule(pol_h, maxIters=5000)
 
     return pol_h, pol
 
