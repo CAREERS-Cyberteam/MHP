@@ -242,18 +242,19 @@ def optPol(smiles):
     Chem.SanitizeMol(pol)
     #opt steps
     pol_h = Chem.AddHs(pol)
-    ids = AllChem.EmbedMultipleConfs(pol_h, numConfs=10, #randomSeed=randomSeed, 
-        useExpTorsionAnglePrefs=True, numThreads=0)
-    best = []
+    ids = AllChem.EmbedMultipleConfs(pol_h, numConfs=100, #randomSeed=randomSeed, useExpTorsionAnglePrefs=True, 
+        numThreads=0, useRandomCoords=True)
+
+    stats = []
+    prop = AllChem.MMFFGetMoleculeProperties(pol_h)
     for id in ids:
-        prop = AllChem.MMFFGetMoleculeProperties(pol_h)
         ff = AllChem.MMFFGetMoleculeForceField(pol_h, prop, confId=id)
         ff.Minimize()
         en = float(ff.CalcEnergy())
         econf = (en, id)
-        best.append(econf)
-    best.sort()
-    best_id = int(best[0][1])
+        stats.append(econf)
+    stats.sort()
+    best_id = int(stats[0][1])
     Chem.MolToMolFile(pol_h,tmp_mol,confId=int(best_id))
     pol_h = Chem.MolFromMolFile(tmp_mol)
     os.remove(tmp_mol)
